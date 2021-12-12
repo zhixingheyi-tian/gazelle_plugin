@@ -362,12 +362,16 @@ arrow::Status Splitter::Init() {
 }
 
 int64_t Splitter::CompressedSize(const arrow::RecordBatch& rb) {
+  std::cout << "Enter CompressedSize, rb.ToString():" << rb.ToString() << std::endl;
   auto payload = std::make_shared<arrow::ipc::IpcPayload>();
   auto result =
       arrow::ipc::GetRecordBatchPayload(rb, options_.ipc_write_options, payload.get());
+  std::cout << "CompressedSize, before 'if (result.ok()':" << std::endl;
   if (result.ok()) {
+    std::cout << "CompressedSize, in 'if (result.ok()':" << std::endl;
     return payload.get()->body_length;
   } else {
+    std::cout << "CompressedSize, in '} else {':" << std::endl;
     result.UnknownError("Failed to get the compressed size.");
     return -1;
   }
@@ -390,10 +394,15 @@ arrow::Status Splitter::SetCompressType(arrow::Compression::type compressed_type
 }
 
 arrow::Status Splitter::Split(const arrow::RecordBatch& rb) {
+  std::cout << "Splitter Before EVAL_START('split', options_.thread_id)" << std::endl;
   EVAL_START("split", options_.thread_id)
+  std::cout << "Splitter Before ComputeAndCountPartitionId" << std::endl;
   RETURN_NOT_OK(ComputeAndCountPartitionId(rb));
+  std::cout << "Splitter Before RETURN_NOT_OK(DoSplit(rb))" << std::endl;
   RETURN_NOT_OK(DoSplit(rb));
+  std::cout << "Splitter Before options_.thread_id, options_.task_attempt_id" << std::endl;
   EVAL_END("split", options_.thread_id, options_.task_attempt_id)
+  std::cout << "Splitter Before return arrow::Status::OK()" << std::endl;
   return arrow::Status::OK();
 }
 
@@ -1175,12 +1184,14 @@ arrow::Status Splitter::SplitLargeBinaryArray(const arrow::RecordBatch& rb) {
   PROCESS(arrow::StringType)             \
   PROCESS(arrow::BinaryType)
 arrow::Status Splitter::SplitListArray(const arrow::RecordBatch& rb) {
+  std::cout <<  "list_array_idx_.size():" << list_array_idx_.size() << std::endl;
   for (int i = 0; i < list_array_idx_.size(); ++i) {
     auto src_arr =
         std::static_pointer_cast<arrow::ListArray>(rb.column(list_array_idx_[i]));
     switch (src_arr->value_type()->id()) {
 #define PROCESS(InType)                                       \
   case InType::type_id: {                                     \
+    std::cout <<  "In case InType::type_id:" << src_arr->value_type()->id() << std::endl;  \
     auto status = AppendList<arrow::ListType, InType>(        \
         src_arr, partition_list_builders_[i], rb.num_rows()); \
     if (!status.ok()) return status;                          \
@@ -1255,14 +1266,21 @@ template <typename T, typename ValueType, typename ArrayType, typename BuilderTy
 arrow::Status Splitter::AppendList(
     const std::shared_ptr<ArrayType>& src_arr,
     const std::vector<std::shared_ptr<BuilderType>>& dst_builders, int64_t num_rows) {
+  std::cout << "arrow::Status Splitter::AppendList: num_rows :" << num_rows   << std::endl;
+  std::cout << "dst_builders.size(): " << dst_builders.size() << std::endl;
   using offset_type = typename T::offset_type;
   using ValueBuilderType = typename arrow::TypeTraits<ValueType>::BuilderType;
   using ValueArrayType = typename arrow::TypeTraits<ValueType>::ArrayType;
   std::vector<ValueBuilderType*> dst_values_builders;
-  for (auto builder : dst_builders) {
-    dst_values_builders.push_back(
-        checked_cast<ValueBuilderType*>(builder->value_builder()));
+   dst_values_builders.resize(dst_builders.size());
+  for (auto i = 0; i < dst_builders.size(); ++i) {
+    if (dst_builders[i] != nullptr)
+        dst_values_builders[i] = checked_cast<ValueBuilderType*>(dst_builders[i]->value_builder());
   }
+  // for (auto builder : dst_builders) {
+  //   dst_values_builders.push_back(
+  //       checked_cast<ValueBuilderType*>(builder->value_builder()));
+  // }
   auto src_arr_values = std::dynamic_pointer_cast<ValueArrayType>(src_arr->values());
 
   if (src_arr->values()->null_count() == 0) {
@@ -1436,11 +1454,17 @@ arrow::Status FallbackRangeSplitter::Init() {
 }
 
 arrow::Status FallbackRangeSplitter::Split(const arrow::RecordBatch& rb) {
+  std::cout << "FallbackRangeSplitter Before EVAL_START('split', options_.thread_id)" << std::endl;
   EVAL_START("split", options_.thread_id)
+  std::cout << "FallbackRangeSplitter Before RETURN_NOT_OK(ComputeAndCountPartitionId(rb))" << std::endl;
   RETURN_NOT_OK(ComputeAndCountPartitionId(rb));
+  std::cout << "FallbackRangeSplitter Before ARROW_ASSIGN_OR_RAISE(auto remove_pid, rb.RemoveColumn(0))" << std::endl;
   ARROW_ASSIGN_OR_RAISE(auto remove_pid, rb.RemoveColumn(0));
+  std::cout << "FallbackRangeSplitter Before RETURN_NOT_OK(DoSplit(*remove_pid))" << std::endl;
   RETURN_NOT_OK(DoSplit(*remove_pid));
+  std::cout << "FallbackRangeSplitter Before EVAL_END('split', options_.thread_id, options_.task_attempt_id)" << std::endl;
   EVAL_END("split", options_.thread_id, options_.task_attempt_id)
+  std::cout << "FallbackRangeSplitter Before return arrow::Status::OK()" << std::endl;
   return arrow::Status::OK();
 }
 

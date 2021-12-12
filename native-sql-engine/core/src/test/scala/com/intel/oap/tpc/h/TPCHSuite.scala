@@ -83,6 +83,10 @@ class TPCHSuite extends QueryTest with SharedSparkSession {
     super.afterAll()
   }
 
+  test("run q2") {
+    runner.runTPCQuery("q2", 1, false)
+  }
+
   test("memory usage test - broadcast hash join", TestAndWriteLogs, BroadcastHashJoinMode) {
     withSQLConf(("spark.sql.autoBroadcastJoinThreshold", "1TB")) {
       runMemoryUsageTest(comment = "BHJ")

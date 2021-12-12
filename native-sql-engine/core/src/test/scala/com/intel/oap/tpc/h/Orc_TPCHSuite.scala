@@ -64,8 +64,8 @@ class Orc_TPCHSuite extends QueryTest with SharedSparkSession {
   override def beforeAll(): Unit = {
     super.beforeAll()
     LogManager.getRootLogger.setLevel(Level.WARN)
-    val tGen = new TPCHTableGen(spark, 0.1D, TPCH_WRITE_PATH)
-    tGen.gen()
+    val tGen = new Orc_TPCHTableGen(spark, 0.1D, TPCH_WRITE_PATH)
+//    tGen.gen()
     tGen.createTables()
     runner = new TPCRunner(spark, TPCH_QUERIES_RESOURCE)
   }
@@ -73,6 +73,36 @@ class Orc_TPCHSuite extends QueryTest with SharedSparkSession {
   override def afterAll(): Unit = {
     super.afterAll()
   }
+
+  test("all queries") {
+    runner.runTPCQuery("q1", 1, false)
+//    runner.runTPCQuery("q2", 1, false)
+    runner.runTPCQuery("q3", 1, false)
+    runner.runTPCQuery("q4", 1, false)
+    runner.runTPCQuery("q5", 1, false)
+    runner.runTPCQuery("q6", 1, false)
+    runner.runTPCQuery("q7", 1, false)
+    runner.runTPCQuery("q8", 1, false)
+    runner.runTPCQuery("q9", 1, false)
+    runner.runTPCQuery("q10", 1, false)
+    runner.runTPCQuery("q11", 1, false)
+    runner.runTPCQuery("q12", 1, false)
+    runner.runTPCQuery("q13", 1, false)
+    runner.runTPCQuery("q14", 1, false)
+    runner.runTPCQuery("q15", 1, false)
+    runner.runTPCQuery("q16", 1, false)
+    runner.runTPCQuery("q17", 1, false)
+    runner.runTPCQuery("q18", 1, false)
+    runner.runTPCQuery("q19", 1, false)
+    runner.runTPCQuery("q20", 1, false)
+    runner.runTPCQuery("q21", 1, false)
+    runner.runTPCQuery("q22", 1, false)
+  }
+
+  test("run q2") {
+    runner.runTPCQuery("q2", 1, false)
+  }
+
 
   test("memory usage test - broadcast hash join", TestAndWriteLogs, BroadcastHashJoinMode) {
     withSQLConf(("spark.sql.autoBroadcastJoinThreshold", "1TB")) {

@@ -44,6 +44,8 @@
 #include "proto/protobuf_utils.h"
 #include "shuffle/splitter.h"
 
+#include<iostream>
+
 namespace {
 
 #define JNI_METHOD_START try {
@@ -1087,6 +1089,7 @@ Java_com_intel_oap_vectorized_ShuffleSplitterJniWrapper_nativeMake(
 
   gandiva::ExpressionVector expr_vector = {};
   if (expr_arr != NULL) {
+    std::cout << "in expr_arr != NULL" << std::endl;
     gandiva::FieldVector ret_types;
     JniAssertOkOrThrow(MakeExprVector(env, expr_arr, &expr_vector, &ret_types),
                        "Failed to parse expressions protobuf");
@@ -1115,6 +1118,12 @@ Java_com_intel_oap_vectorized_ShuffleSplitterJniWrapper_nativeMake(
     splitOptions.task_attempt_id = (int64_t)attmpt_id;
   }
 
+  std::cout << "partitioning_name: " << partitioning_name << std::endl;
+  std::cout << "schema->ToString():" << schema->ToString() << std::endl;
+  std::cout << "num_partitions: " << num_partitions << std::endl;
+  std::cout << "expr_vector.size(): " << expr_vector.size() << std::endl;
+  std::cout << "splitOptions.buffer_size: " << splitOptions.buffer_size << std::endl;
+  std::cout << "splitOptions.data_file: " << splitOptions.data_file << std::endl;
   auto splitter =
       JniGetOrThrow(Splitter::Make(partitioning_name, std::move(schema), num_partitions,
                                    expr_vector, std::move(splitOptions)),
@@ -1148,6 +1157,7 @@ Java_com_intel_oap_vectorized_ShuffleSplitterJniWrapper_setCompressType(
 JNIEXPORT jlong JNICALL Java_com_intel_oap_vectorized_ShuffleSplitterJniWrapper_split(
     JNIEnv* env, jobject, jlong splitter_id, jint num_rows, jlongArray buf_addrs,
     jlongArray buf_sizes, jboolean first_record_batch) {
+  std::cout << "Enter Java_com_intel_oap_vectorized_ShuffleSplitterJniWrapper_split" << std::endl;
   JNI_METHOD_START
   auto splitter = shuffle_splitter_holder_.Lookup(splitter_id);
   if (!splitter) {
@@ -1177,11 +1187,18 @@ JNIEXPORT jlong JNICALL Java_com_intel_oap_vectorized_ShuffleSplitterJniWrapper_
 
   env->ReleaseLongArrayElements(buf_addrs, in_buf_addrs, JNI_ABORT);
   env->ReleaseLongArrayElements(buf_sizes, in_buf_sizes, JNI_ABORT);
+  std::cout << "first_record_batch" << first_record_batch << std::endl;
+  std::cout <<  "Java_com_intel_oap_vectorized_ShuffleSplitterJniWrapper_split: before if (first_record_batch) :"   << std::endl;
 
   if (first_record_batch) {
+    std::cout <<  "Java_com_intel_oap_vectorized_ShuffleSplitterJniWrapper_split: in if (first_record_batch) :"   << std::endl;
     return splitter->CompressedSize(*in);
   }
+  std::cout << "Java_com_intel_oap_vectorized_ShuffleSplitterJniWrapper_split: after if (first_record_batch) :"   << std::endl;
+  std::cout << "before JniAssertOkOrThrow(splitter->Split(*in)" << std::endl;
+  std::cout << "before JniAssertOkOrThrow in->ToString():" << in->ToString() << std::endl;
   JniAssertOkOrThrow(splitter->Split(*in), "Native split: splitter split failed");
+  std::cout << "after JniAssertOkOrThrow(splitter->Split(*in)" << std::endl;
   return -1L;
   JNI_METHOD_END(-1L)
 }
